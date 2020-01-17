@@ -1,5 +1,5 @@
 public interface ElevatorState {
-    void selectFloor(int floor);
-    void openDoor();
-    void closeDoor();
+    boolean selectFloor(Elevator elevator, int floor);
+    boolean openDoor();
+    boolean closeDoor();
 }
