@@ -1,15 +1,15 @@
 public class MovingState implements ElevatorState {
     @Override
-    public boolean selectFloor(Elevator elevator, int floor) {
-        if (!elevator.getPossibleFloors().contains(floor)) {
+    public boolean selectFloor(Elevator elevator, int floor) throws InvalidCaseException {
+        if (!elevator.isTheFloorPossibleToGo(floor)) {
             System.out.println("This elevator can't go to the " + floor + " floor.");
             return false;
         }
         Direction currentDirection = elevator.getDirection();
         if(floor > elevator.getCurrentFloor() && currentDirection.equals(Direction.GOING_UP)){
-            elevator.getDestinationFloors().add(floor);
+            elevator.addToDestination(floor);
         } else if(floor < elevator.getCurrentFloor() && currentDirection.equals(Direction.GOING_DOWN)){
-            elevator.getDestinationFloors().add(floor);
+            elevator.addToDestination(floor);
         } else {
             System.out.println("Cannot add "+floor+" floor to the destination.");
             return false;

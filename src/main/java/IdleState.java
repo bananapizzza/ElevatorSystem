@@ -1,42 +1,28 @@
 public class IdleState implements ElevatorState {
     @Override
-    public boolean selectFloor(Elevator elevator, int floor) {
-        if (!elevator.getPossibleFloors().contains(floor)) {
+    public boolean selectFloor(Elevator elevator, int floor) throws InvalidCaseException, NoDestinationException {
+        if (!elevator.isTheFloorPossibleToGo(floor)) {
             System.out.println("This elevator can't go to the " + floor + " floor.");
             return false;
         }
         switch(elevator.getDirection()){
             case GOING_UP:
-                if(floor > elevator.getCurrentFloor()){
-                    elevator.setCurrentState(elevator.getMovingState());
-                    elevator.getDestinationFloors().add(floor);
-                    elevator.move();
-                } else {
+                if(floor <= elevator.getCurrentFloor()) {
                     System.out.println("This elevator is going up. Select upper floor.");
                     return false;
                 }
                 break;
             case GOING_DOWN:
-                if(floor < elevator.getCurrentFloor()){
-                    elevator.setCurrentState(elevator.getMovingState());
-                    elevator.getDestinationFloors().add(floor);
-                    elevator.move();
-                } else {
+                if(floor >= elevator.getCurrentFloor()){
                     System.out.println("This elevator is going down. Select lower floor.");
                     return false;
                 }
                 break;
             case NONE:
                 if(floor > elevator.getCurrentFloor()){
-                    elevator.setCurrentState(elevator.getMovingState());
                     elevator.setDirection(Direction.GOING_UP);
-                    elevator.getDestinationFloors().add(floor);
-                    elevator.move();
                 } else if (floor < elevator.getCurrentFloor()){
-                    elevator.setCurrentState(elevator.getMovingState());
                     elevator.setDirection(Direction.GOING_DOWN);
-                    elevator.getDestinationFloors().add(floor);
-                    elevator.move();
                 } else {
                     System.out.println("Selected floor is the current floor.");
                     openDoor();
@@ -44,9 +30,11 @@ public class IdleState implements ElevatorState {
                 }
                 break;
             default:
-                System.out.println("Invalid direction.");
-                return false;
+                throw new InvalidCaseException("Invalid direction.");
         }
+        elevator.setCurrentState(elevator.getMovingState());
+        elevator.addToDestination(floor);
+        elevator.move();
         return true;
     }
 
@@ -65,6 +53,11 @@ public class IdleState implements ElevatorState {
     @Override
     public boolean closeDoor() {
         System.out.println("Closing the door...");
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         return true;
     }
 }

@@ -4,36 +4,44 @@ import lombok.NonNull;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
-import java.util.*;
+import java.util.List;
 
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Elevator {
-    @NonNull
-    Set<Integer> possibleFloors;
+    boolean[] destinationFloors;
     Integer currentFloor = 0;
-    //TODO: make boolean array for floors
-    PriorityQueue<Integer> destinationFloors = new PriorityQueue<>();
-
     Direction direction = Direction.NONE;
-
+    List<Integer> possibleFloors;
     final ElevatorState idleState = new IdleState();
     final ElevatorState movingState = new MovingState();
     final ElevatorState outOfServiceState = new OutOfServiceState();
     ElevatorState currentState = idleState;
 
-    Elevator(Set<Integer> possibleFloors) {
+    Elevator(List<Integer> possibleFloors) {
         this.possibleFloors = possibleFloors;
+        this.destinationFloors = new boolean[possibleFloors.size()];
     }
 
-    Elevator(List<Integer> possibleFloors){
-        this.possibleFloors = new HashSet<>(possibleFloors);
+    boolean isTheFloorPossibleToGo(int floor){
+        for(int i : possibleFloors){
+            if(i == floor){
+                return true;
+            }
+        }
+        return false;
     }
 
-    //TODO: Should the return type boolean? or Should I use exceptions?
     boolean selectFloor(int floor) {
-        return currentState.selectFloor(this, floor);
+        try {
+            return currentState.selectFloor(this, floor);
+        } catch (InvalidCaseException e) {
+            e.printStackTrace();
+        } catch (NoDestinationException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     boolean openDoor() {
@@ -49,71 +57,118 @@ public class Elevator {
         return true;
     }
 
-    boolean move() {
-        if(destinationFloors.isEmpty()){
-            System.out.println("There is no destination floors.");
-            return false;
+    void move() throws InvalidCaseException, NoDestinationException {
+        if (!destinationExist()) {
+            throw new NoDestinationException("There is no destination.");
         }
-        while(!destinationFloors.isEmpty()) {
-            int destinationFloor = destinationFloors.poll();
-            if (destinationFloor > currentFloor) {
-                System.out.println("Going up...");
-                this.direction = Direction.GOING_UP;
-            } else if (destinationFloor < currentFloor) {
-                System.out.println("Going down...");
-                this.direction = Direction.GOING_DOWN;
-            }
+        while (destinationExist()) {
+            int destinationFloor = getClosestDestinationFloor();
             this.currentState = movingState;
-            if(this.direction.equals(Direction.GOING_UP)){
-                while(currentFloor < destinationFloor){
+            if(destinationFloor > currentFloor){
+                setDirection(Direction.GOING_UP);
+            } else if(destinationFloor < currentFloor){
+                setDirection(Direction.GOING_DOWN);
+            }
+
+            if (this.direction.equals(Direction.GOING_UP)) {
+                while (currentFloor < destinationFloor) {
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     currentFloor++;
-                    System.out.println("Current floor is "+currentFloor);
+                    System.out.println("Current floor is " + currentFloor);
+                    if (destinationFloors[getIndex(currentFloor)]) {
+                        break;
+                    }
                 }
+            } else if (this.direction.equals(Direction.GOING_DOWN)) {
+                while (currentFloor > destinationFloor) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    currentFloor--;
+                    System.out.println("Current floor is " + currentFloor);
+                    if (destinationFloors[getIndex(currentFloor)]) {
+                        break;
+                    }
+                }
+            } else {
+                throw new InvalidCaseException("The direction cannot be NONE while moving");
             }
 
             System.out.println("Arrived to " + currentFloor + " floor.");
-            this.currentState = idleState;
-            openDoor();
+            stop();
         }
         this.direction = Direction.NONE;
+    }
+
+    boolean destinationExist() {
+        for (int i = 0; i < destinationFloors.length; i++) {
+            if (destinationFloors[i]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    int getIndex(int floor) throws InvalidCaseException {
+        for(int i = 0; i<possibleFloors.size(); i++){
+            if(possibleFloors.get(i) == floor){
+                return i;
+            }
+        }
+        throw new InvalidCaseException("The floor is not in the possibleFloors list.");
+    }
+
+    int getClosestDestinationFloor() throws NoDestinationException, InvalidCaseException {
+        if (this.direction.equals(Direction.GOING_UP)) {
+            for (int i = getIndex(currentFloor); i < destinationFloors.length; i++) {
+                if (destinationFloors[i]) {
+                    return possibleFloors.get(i);
+                }
+            }
+        } else if (this.direction.equals(Direction.GOING_DOWN)) {
+            for (int i = getIndex(currentFloor); i >= 0; i--) {
+                if (destinationFloors[i]) {
+                    return possibleFloors.get(i);
+                }
+            }
+        } else {
+            for (int i = this.currentFloor, j = this.currentFloor; i < destinationFloors.length || j >= 0; i++, j--) {
+                if (i < destinationFloors.length) {
+                    if (destinationFloors[getIndex(i)]) {
+                        return i;
+                    }
+                }
+                if (j >= 0) {
+                    if (destinationFloors[getIndex(j)]) {
+                        return j;
+                    }
+                }
+            }
+        }
+        throw new NoDestinationException("There is no destination.");
+    }
+
+    boolean stop() throws InvalidCaseException {
+        this.currentState = idleState;
+        destinationFloors[getIndex(currentFloor)] = false;
+        openDoor();
         return true;
     }
 
-    boolean callElevator(int calledFloor, Direction direction){
-        this.direction = direction;
-        destinationFloors.add(calledFloor);
-        return move();
-    }
+    //TODO
+//    boolean callElevator(int calledFloor, Direction direction) {
+//        this.direction = direction;
+//        destinationFloors.add(calledFloor);
+//        return move();
+//    }
 
-    void addToDestination(int floor){
-        int key;
-        switch(this.direction){
-            case GOING_UP:
-                key = floor - this.currentFloor;
-                if(key <= 0){
-                    key += 100;
-                }
-                break;
-            case GOING_DOWN:
-                key = this.currentFloor - floor;
-                if(key <= 0){
-                    key += 100;
-                }
-                break;
-            case NONE:
-                if(floor > this.currentFloor){
-                    key = floor - this.currentFloor;
-                } else {
-                    key = this.currentFloor - floor;
-                }
-                break;
-            default:
-                System.out.println("Invalid direction.");
-        }
+    void addToDestination(int floor) throws InvalidCaseException {
+       destinationFloors[getIndex(floor)] = true;
     }
 }

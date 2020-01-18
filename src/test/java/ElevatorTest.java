@@ -39,14 +39,13 @@ class ElevatorTest {
     void test_selectFloor_MovingState() {
         elevator.setCurrentState(elevator.getMovingState());
         elevator.setDirection(Direction.GOING_UP);
-        System.out.println(elevator.getCurrentFloor());
         assertTrue(elevator.selectFloor(5));
-
         assertFalse(elevator.selectFloor(6));
 
         elevator.setCurrentState(elevator.getMovingState());
         elevator.setDirection(Direction.GOING_UP);
-        assertFalse(elevator.selectFloor(-1));
+        elevator.setCurrentFloor(5);
+        assertFalse(elevator.selectFloor(4));
     }
 
     @Test
@@ -62,14 +61,14 @@ class ElevatorTest {
     }
 
     @Test
-    void test_move() {
-        assertFalse(elevator.move());
+    void test_move() throws NoDestinationException, InvalidCaseException {
+        assertThrows(NoDestinationException.class, ()->elevator.move());
 
-        elevator.getDestinationFloors().add(3);
-        elevator.getDestinationFloors().add(4);
-        elevator.getDestinationFloors().add(5);
+        elevator.addToDestination(3);
+        elevator.addToDestination(4);
+        elevator.addToDestination(5);
 
-        assertTrue(elevator.move());
+        elevator.move();
     }
 
     @Test
