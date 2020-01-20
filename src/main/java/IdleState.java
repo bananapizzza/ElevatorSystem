@@ -1,6 +1,12 @@
 public class IdleState implements ElevatorState {
+    Elevator elevator;
+
+    public IdleState(Elevator elevator){
+        this.elevator = elevator;
+    }
+
     @Override
-    public boolean selectFloor(Elevator elevator, int floor) throws InvalidCaseException, NoDestinationException {
+    public boolean selectFloor(int floor) throws InvalidCaseException, NoDestinationException {
         if (!elevator.isTheFloorPossibleToGo(floor)) {
             System.out.println("This elevator can't go to the " + floor + " floor.");
             return false;
@@ -34,18 +40,14 @@ public class IdleState implements ElevatorState {
         }
         elevator.setCurrentState(elevator.getMovingState());
         elevator.addToDestination(floor);
-        elevator.move();
+        //elevator.moveElevator();
         return true;
     }
 
     @Override
     public boolean openDoor() {
         System.out.println("Opening the door...");
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        elevator.waiting(elevator.DOOR_OPEN_CLOSE_TIME);
         closeDoor();
         return true;
     }
@@ -53,11 +55,7 @@ public class IdleState implements ElevatorState {
     @Override
     public boolean closeDoor() {
         System.out.println("Closing the door...");
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        elevator.waiting(elevator.DOOR_OPEN_CLOSE_TIME);
         return true;
     }
 }

@@ -1,6 +1,12 @@
 public class MovingState implements ElevatorState {
+    Elevator elevator;
+
+    public MovingState(Elevator elevator){
+        this.elevator = elevator;
+    }
+
     @Override
-    public boolean selectFloor(Elevator elevator, int floor) throws InvalidCaseException {
+    public boolean selectFloor(int floor) throws InvalidCaseException {
         if (!elevator.isTheFloorPossibleToGo(floor)) {
             System.out.println("This elevator can't go to the " + floor + " floor.");
             return false;
@@ -25,7 +31,7 @@ public class MovingState implements ElevatorState {
 
     @Override
     public boolean closeDoor() {
-        System.out.println("Cannot open the door right now.");
+        System.out.println("Cannot close the door right now.");
         return false;
     }
 }

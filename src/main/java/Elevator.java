@@ -1,6 +1,5 @@
 import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
@@ -9,19 +8,27 @@ import java.util.List;
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Elevator {
+public class Elevator extends Thread {
     boolean[] destinationFloors;
     Integer currentFloor = 0;
     Direction direction = Direction.NONE;
+    final public int MOVING_TIME = 1000;
+    final public int DOOR_OPEN_CLOSE_TIME = 2000;
+    final public int DESTINATION_CHECK_TIME = 1000;
     List<Integer> possibleFloors;
-    final ElevatorState idleState = new IdleState();
-    final ElevatorState movingState = new MovingState();
-    final ElevatorState outOfServiceState = new OutOfServiceState();
+    final ElevatorState idleState = new IdleState(this);
+    final ElevatorState movingState = new MovingState(this);
+    final ElevatorState outOfServiceState = new OutOfServiceState(this);
+    Thread movingElevatorThread = new Thread(this::moveElevator);
     ElevatorState currentState = idleState;
 
     Elevator(List<Integer> possibleFloors) {
         this.possibleFloors = possibleFloors;
         this.destinationFloors = new boolean[possibleFloors.size()];
+    }
+
+    public void run(){
+        movingElevatorThread.start();
     }
 
     boolean isTheFloorPossibleToGo(int floor){
@@ -35,7 +42,7 @@ public class Elevator {
 
     boolean selectFloor(int floor) {
         try {
-            return currentState.selectFloor(this, floor);
+            return currentState.selectFloor(floor);
         } catch (InvalidCaseException e) {
             e.printStackTrace();
         } catch (NoDestinationException e) {
@@ -57,53 +64,59 @@ public class Elevator {
         return true;
     }
 
-    void move() throws InvalidCaseException, NoDestinationException {
-        if (!destinationExist()) {
-            throw new NoDestinationException("There is no destination.");
-        }
-        while (destinationExist()) {
-            int destinationFloor = getClosestDestinationFloor();
-            this.currentState = movingState;
-            if(destinationFloor > currentFloor){
-                setDirection(Direction.GOING_UP);
-            } else if(destinationFloor < currentFloor){
-                setDirection(Direction.GOING_DOWN);
-            }
+    void moveElevator() {
+        while(true) {
+            waiting(DESTINATION_CHECK_TIME);
+            while (destinationExist()) {
+                try {
+                    int destinationFloor = getClosestDestinationFloor();
+                    this.currentState = movingState;
+                    if (destinationFloor > currentFloor) {
+                        setDirection(Direction.GOING_UP);
+                    } else if (destinationFloor < currentFloor) {
+                        setDirection(Direction.GOING_DOWN);
+                    }
 
-            if (this.direction.equals(Direction.GOING_UP)) {
-                while (currentFloor < destinationFloor) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                    if (this.direction.equals(Direction.GOING_UP)) {
+                        while (currentFloor < destinationFloor) {
+                            waiting(MOVING_TIME);
+                            currentFloor++;
+                            System.out.println("Current floor is " + currentFloor);
+                            if (destinationFloors[getIndex(currentFloor)]) {
+                                break;
+                            }
+                        }
+                    } else if (this.direction.equals(Direction.GOING_DOWN)) {
+                        while (currentFloor > destinationFloor) {
+                            waiting(MOVING_TIME);
+                            currentFloor--;
+                            System.out.println("Current floor is " + currentFloor);
+                            if (destinationFloors[getIndex(currentFloor)]) {
+                                break;
+                            }
+                        }
+                    } else {
+                        throw new InvalidCaseException("The direction cannot be NONE while moving");
                     }
-                    currentFloor++;
-                    System.out.println("Current floor is " + currentFloor);
-                    if (destinationFloors[getIndex(currentFloor)]) {
-                        break;
-                    }
-                }
-            } else if (this.direction.equals(Direction.GOING_DOWN)) {
-                while (currentFloor > destinationFloor) {
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    currentFloor--;
-                    System.out.println("Current floor is " + currentFloor);
-                    if (destinationFloors[getIndex(currentFloor)]) {
-                        break;
-                    }
-                }
-            } else {
-                throw new InvalidCaseException("The direction cannot be NONE while moving");
-            }
 
-            System.out.println("Arrived to " + currentFloor + " floor.");
-            stop();
+                    System.out.println("Arrived to " + currentFloor + " floor.");
+                    stopElevator();
+                } catch (NoDestinationException e) {
+                    e.printStackTrace();
+                } catch (InvalidCaseException e) {
+                    e.printStackTrace();
+                }
+            }
+            this.direction = Direction.NONE;
         }
-        this.direction = Direction.NONE;
+    }
+
+    void waiting(int time){
+        try {
+            Thread.sleep(time);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     boolean destinationExist() {
@@ -154,7 +167,7 @@ public class Elevator {
         throw new NoDestinationException("There is no destination.");
     }
 
-    boolean stop() throws InvalidCaseException {
+    boolean stopElevator() throws InvalidCaseException {
         this.currentState = idleState;
         destinationFloors[getIndex(currentFloor)] = false;
         openDoor();
