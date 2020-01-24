@@ -1,187 +1,112 @@
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
-
-import java.util.List;
 
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Elevator extends Thread {
-    boolean[] destinationFloors;
-    Integer currentFloor = 0;
-    Direction direction = Direction.NONE;
-    final public int MOVING_TIME = 1000;
+public class Elevator {
+    @NonNull
+    String id;
+    int height;
+    int width;
+    int length;
+    int possibleWeight;
+    int currentWeight = 0;
+    @NonNull
+    ElevatorMovementInfo elevatorMovementInfo;
+    boolean isDoorOpened = false;
     final public int DOOR_OPEN_CLOSE_TIME = 2000;
-    final public int DESTINATION_CHECK_TIME = 1000;
-    List<Integer> possibleFloors;
-    final ElevatorState idleState = new IdleState(this);
-    final ElevatorState movingState = new MovingState(this);
-    final ElevatorState outOfServiceState = new OutOfServiceState(this);
-    Thread movingElevatorThread = new Thread(this::moveElevator);
-    ElevatorState currentState = idleState;
 
-    Elevator(List<Integer> possibleFloors) {
-        this.possibleFloors = possibleFloors;
-        this.destinationFloors = new boolean[possibleFloors.size()];
+    public Elevator(String id, int height, int width, int length, int possibleWeight, ElevatorMovementInfo elevatorMovementInfo) {
+        this.id = id;
+        this.height = height;
+        this.width = width;
+        this.length = length;
+        this.possibleWeight = possibleWeight;
+        this.elevatorMovementInfo = elevatorMovementInfo;
     }
 
-    public void run(){
-        movingElevatorThread.start();
-    }
-
-    boolean isTheFloorPossibleToGo(int floor){
-        for(int i : possibleFloors){
-            if(i == floor){
-                return true;
-            }
+    public boolean selectFloor(int floor) {
+        if (!elevatorMovementInfo.isPossibleToSelect(floor)) {
+            System.out.println("Cannot add the floor to the destination.");
+            return false;
         }
-        return false;
+        elevatorMovementInfo.addToDestination(floor);
+        return true;
     }
 
-    boolean selectFloor(int floor) {
-        try {
-            return currentState.selectFloor(floor);
-        } catch (InvalidCaseException e) {
-            e.printStackTrace();
-        } catch (NoDestinationException e) {
-            e.printStackTrace();
+    public boolean openDoor() {
+        if (!isPossibleToOpenDoor()) {
+            System.out.println("Cannot open the door now.");
+            return false;
         }
-        return false;
+        System.out.println("Opening the door...");
+        isDoorOpened = true;
+        waitingFor(DOOR_OPEN_CLOSE_TIME);
+        while (isTooManyPeople()) {
+            System.out.println("There are too many people in here.");
+        }
+        closeDoor();
+        return true;
     }
 
-    boolean openDoor() {
-        return currentState.openDoor();
+    public boolean closeDoor() {
+        if (!isDoorOpened) {
+            System.out.println("The door is already closed.");
+            return false;
+        }
+        if (!isPossibleToCloseDoor()) {
+            System.out.println("Cannot close the door now.");
+            return false;
+        }
+        System.out.println("Closing the door...");
+        isDoorOpened = false;
+        return true;
     }
 
-    boolean closeDoor() {
-        return currentState.closeDoor();
+    private boolean isPossibleToOpenDoor() {
+        if (!elevatorMovementInfo.isPossibleToOpenDoor()) {
+            return false;
+        }
+        return true;
     }
 
-    boolean callEmergency() {
+    private boolean isPossibleToCloseDoor() {
+        if (!elevatorMovementInfo.isPossibleToCloseDoor()) {
+            return false;
+        }
+        if (isTooManyPeople()) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean isTooManyPeople() {
+        return currentWeight > possibleWeight;
+    }
+
+    public boolean callEmergency() {
         System.out.println("Calling to emergency service...");
         return true;
     }
 
-    void moveElevator() {
-        while(true) {
-            waiting(DESTINATION_CHECK_TIME);
-            while (destinationExist()) {
-                try {
-                    int destinationFloor = getClosestDestinationFloor();
-                    this.currentState = movingState;
-                    if (destinationFloor > currentFloor) {
-                        setDirection(Direction.GOING_UP);
-                    } else if (destinationFloor < currentFloor) {
-                        setDirection(Direction.GOING_DOWN);
-                    }
-
-                    if (this.direction.equals(Direction.GOING_UP)) {
-                        while (currentFloor < destinationFloor) {
-                            waiting(MOVING_TIME);
-                            currentFloor++;
-                            System.out.println("Current floor is " + currentFloor);
-                            if (destinationFloors[getIndex(currentFloor)]) {
-                                break;
-                            }
-                        }
-                    } else if (this.direction.equals(Direction.GOING_DOWN)) {
-                        while (currentFloor > destinationFloor) {
-                            waiting(MOVING_TIME);
-                            currentFloor--;
-                            System.out.println("Current floor is " + currentFloor);
-                            if (destinationFloors[getIndex(currentFloor)]) {
-                                break;
-                            }
-                        }
-                    } else {
-                        throw new InvalidCaseException("The direction cannot be NONE while moving");
-                    }
-
-                    System.out.println("Arrived to " + currentFloor + " floor.");
-                    stopElevator();
-                } catch (NoDestinationException e) {
-                    e.printStackTrace();
-                } catch (InvalidCaseException e) {
-                    e.printStackTrace();
-                }
-            }
-            this.direction = Direction.NONE;
-        }
+    public void arrivedToDestination(){
+        System.out.println("Arrived to "+elevatorMovementInfo.getCurrentFloor()+" floor.");
+        openDoor();
     }
 
-    void waiting(int time){
+    public int getCurrentFloor(){
+        return elevatorMovementInfo.getCurrentFloor();
+    }
+
+    private void waitingFor(int time) {
         try {
             Thread.sleep(time);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-    }
-
-    boolean destinationExist() {
-        for (int i = 0; i < destinationFloors.length; i++) {
-            if (destinationFloors[i]) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    int getIndex(int floor) throws InvalidCaseException {
-        for(int i = 0; i<possibleFloors.size(); i++){
-            if(possibleFloors.get(i) == floor){
-                return i;
-            }
-        }
-        throw new InvalidCaseException("The floor is not in the possibleFloors list.");
-    }
-
-    int getClosestDestinationFloor() throws NoDestinationException, InvalidCaseException {
-        if (this.direction.equals(Direction.GOING_UP)) {
-            for (int i = getIndex(currentFloor); i < destinationFloors.length; i++) {
-                if (destinationFloors[i]) {
-                    return possibleFloors.get(i);
-                }
-            }
-        } else if (this.direction.equals(Direction.GOING_DOWN)) {
-            for (int i = getIndex(currentFloor); i >= 0; i--) {
-                if (destinationFloors[i]) {
-                    return possibleFloors.get(i);
-                }
-            }
-        } else {
-            for (int i = this.currentFloor, j = this.currentFloor; i < destinationFloors.length || j >= 0; i++, j--) {
-                if (i < destinationFloors.length) {
-                    if (destinationFloors[getIndex(i)]) {
-                        return i;
-                    }
-                }
-                if (j >= 0) {
-                    if (destinationFloors[getIndex(j)]) {
-                        return j;
-                    }
-                }
-            }
-        }
-        throw new NoDestinationException("There is no destination.");
-    }
-
-    boolean stopElevator() throws InvalidCaseException {
-        this.currentState = idleState;
-        destinationFloors[getIndex(currentFloor)] = false;
-        openDoor();
-        return true;
-    }
-
-    //TODO
-//    boolean callElevator(int calledFloor, Direction direction) {
-//        this.direction = direction;
-//        destinationFloors.add(calledFloor);
-//        return move();
-//    }
-
-    void addToDestination(int floor) throws InvalidCaseException {
-       destinationFloors[getIndex(floor)] = true;
     }
 }

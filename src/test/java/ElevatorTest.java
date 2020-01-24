@@ -6,16 +6,20 @@ import java.util.Arrays;
 
 class ElevatorTest {
     Elevator elevator;
+    ElevatorMovementInfo elevatorMovementInfo;
+    ElevatorMover elevatorMover;
     @BeforeEach
     void initialize(){
         Integer[] floors = {-2, -1, 0, 1, 2, 3, 4, 5};
-        elevator = new Elevator(Arrays.asList(floors));
+        elevatorMovementInfo = new ElevatorMovementInfo(Arrays.asList(floors));
+        elevator = new Elevator("ev1", 10, 10, 10, 100, elevatorMovementInfo);
+        elevatorMover = new ElevatorMover(elevator, elevatorMovementInfo);
+        elevatorMover.start();
     }
 
     @Test
     void test_selectFloor_IdleCase() throws InterruptedException {
-        elevator.setCurrentState(elevator.getIdleState());
-        elevator.start();
+        elevatorMovementInfo.setCurrentState(elevatorMovementInfo.getIdleState());
         assertTrue(elevator.selectFloor(5));
         assertEquals(0, elevator.getCurrentFloor());
         Thread.sleep(7000);
@@ -27,62 +31,56 @@ class ElevatorTest {
 
     @Test
     void test_openDoor_IdleCase() {
-        elevator.setCurrentState(elevator.getIdleState());
-        elevator.start();
+        elevatorMovementInfo.setCurrentState(elevatorMovementInfo.getIdleState());
         assertTrue(elevator.openDoor());
     }
 
     @Test
     void test_closeDoor_IdleCase() {
-        elevator.setCurrentState(elevator.getIdleState());
-        elevator.start();
+        elevatorMovementInfo.setCurrentState(elevatorMovementInfo.getIdleState());
+        elevator.setDoorOpened(true);
         assertTrue(elevator.closeDoor());
     }
 
     @Test
     void test_selectFloor_MovingState() throws InterruptedException {
-        elevator.setCurrentState(elevator.getMovingState());
-        elevator.setDirection(Direction.GOING_UP);
-        elevator.start();
+        elevatorMovementInfo.setCurrentState(elevatorMovementInfo.getMovingState());
+        elevatorMovementInfo.setDirection(Direction.GOING_UP);
 
         assertTrue(elevator.selectFloor(3));
         Thread.sleep(3000);
         assertFalse(elevator.selectFloor(1));
         assertTrue(elevator.selectFloor(5));
-        assertFalse(elevator.selectFloor(6));
-        Thread.sleep(10000);
+        Thread.sleep(7000);
 
-        elevator.setCurrentState(elevator.getMovingState());
-        elevator.setDirection(Direction.GOING_UP);
+        elevatorMovementInfo.setCurrentState(elevatorMovementInfo.getMovingState());
+        elevatorMovementInfo.setDirection(Direction.GOING_UP);
         assertFalse(elevator.selectFloor(4));
     }
 
     @Test
     void test_openDoor_MovingState() {
-        elevator.setCurrentState(elevator.getMovingState());
-        elevator.start();
+        elevatorMovementInfo.setCurrentState(elevatorMovementInfo.getMovingState());
         assertFalse(elevator.openDoor());
     }
 
     @Test
     void test_closeDoor_MovingState() {
-        elevator.setCurrentState(elevator.getMovingState());
-        elevator.start();
+        elevatorMovementInfo.setCurrentState(elevatorMovementInfo.getMovingState());
         assertFalse(elevator.closeDoor());
     }
 
     @Test
-    void test_moveElevator() throws InvalidCaseException, InterruptedException {
-        assertThrows(InvalidCaseException.class, () -> elevator.addToDestination(6));
-        elevator.addToDestination(3);
-        elevator.addToDestination(4);
-        elevator.addToDestination(5);
-        elevator.start();
+    void test_moveElevator() throws InterruptedException {
+        elevatorMovementInfo.addToDestination(3);
+        elevatorMovementInfo.addToDestination(4);
+        elevatorMovementInfo.addToDestination(5);
+
         Thread.sleep(5000);
         assertEquals(3, elevator.getCurrentFloor());
-        Thread.sleep(6000);
+        Thread.sleep(5000);
         assertEquals(4, elevator.getCurrentFloor());
-        Thread.sleep(7000);
+        Thread.sleep(5000);
         assertEquals(5, elevator.getCurrentFloor());
     }
 

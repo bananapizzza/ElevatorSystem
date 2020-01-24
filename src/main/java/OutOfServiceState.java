@@ -1,25 +1,16 @@
 public class OutOfServiceState implements ElevatorState {
-    Elevator elevator;
-
-    public OutOfServiceState(Elevator elevator){
-        this.elevator = elevator;
-    }
-
     @Override
-    public boolean selectFloor(int floor) {
-        System.out.println("This elevator is currently out of service.");
+    public boolean isPossibleToSelect(int floor) {
         return false;
     }
 
     @Override
-    public boolean openDoor() {
-        System.out.println("This elevator is currently out of service.");
+    public boolean isPossibleToOpenDoor() {
         return false;
     }
 
     @Override
-    public boolean closeDoor() {
-        System.out.println("This elevator is currently out of service.");
+    public boolean isPossibleToCloseDoor() {
         return false;
     }
 }

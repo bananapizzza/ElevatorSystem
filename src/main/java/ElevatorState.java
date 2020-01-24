@@ -1,5 +1,5 @@
 public interface ElevatorState {
-    boolean selectFloor(int floor) throws InvalidCaseException, NoDestinationException;
-    boolean openDoor();
-    boolean closeDoor();
+    boolean isPossibleToSelect(int floor);
+    boolean isPossibleToOpenDoor();
+    boolean isPossibleToCloseDoor();
 }
