@@ -1,16 +1,16 @@
 public class IdleState implements ElevatorState {
     @Override
-    public void selectFloor(int floor) {
-
+    public boolean isPossibleToSelect(int floor) {
+        return true;
     }
 
     @Override
-    public void openDoor() {
-
+    public boolean isPossibleToOpenDoor() {
+        return true;
     }
 
     @Override
-    public void closeDoor() {
-
+    public boolean isPossibleToCloseDoor() {
+        return true;
     }
 }

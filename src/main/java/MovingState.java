@@ -1,7 +1,7 @@
-public class OutOfServiceState implements ElevatorState {
+public class MovingState implements ElevatorState {
     @Override
     public boolean isPossibleToSelect(int floor) {
-        return false;
+        return true;
     }
 
     @Override
