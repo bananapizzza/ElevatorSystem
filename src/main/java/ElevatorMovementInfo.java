@@ -4,6 +4,7 @@ import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
+import java.util.stream.IntStream;
 
 @Getter
 @Setter
@@ -96,19 +97,22 @@ public class ElevatorMovementInfo {
     }
 
     public int getClosestDestinationFloor() throws NoDestinationException, InvalidCaseException {
+        int destinationFloorIndex;
         if (this.direction.equals(Direction.GOING_UP)) {
-            for (int i = getIndex(currentFloor); i < destinationFloors.length; i++) {
-                if (destinationFloors[i]) {
-                    return totalFloors.get(i);
-                }
-            }
+            //If this is going up, get the closest upper floor from the current floor.
+            destinationFloorIndex =  IntStream.range(getIndex(currentFloor), destinationFloors.length)
+                    .filter(floor -> destinationFloors[floor])
+                    .findFirst().getAsInt();
+            return totalFloors.get(destinationFloorIndex);
         } else if (this.direction.equals(Direction.GOING_DOWN)) {
-            for (int i = getIndex(currentFloor); i >= 0; i--) {
-                if (destinationFloors[i]) {
-                    return totalFloors.get(i);
-                }
-            }
+            //If this is going down, get the closest lower floor from the current floor.
+            destinationFloorIndex = IntStream.rangeClosed(getIndex(currentFloor), 0)
+                    .filter(floor -> destinationFloors[floor])
+                    .findFirst().getAsInt();
+            return totalFloors.get(destinationFloorIndex);
         } else {
+            //If the direction is none, get the closest floor from the current floor.
+            //It doesn't matter if it's upper or lower.
             for (int i = getIndex(currentFloor), j = getIndex(currentFloor); i < destinationFloors.length || j >= 0; i++, j--) {
                 if (i < destinationFloors.length) {
                     if (destinationFloors[i]) {

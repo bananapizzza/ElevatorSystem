@@ -1,6 +1,7 @@
 public class ElevatorMover extends Thread {
     Elevator elevator;
     ElevatorMovementInfo elevatorMovementInfo;
+    int destinationFloor;
     final int DESTINATION_CHECK_TIME = 1000;
     final public int MOVING_TIME = 1000;
 
@@ -14,7 +15,7 @@ public class ElevatorMover extends Thread {
             waitingFor(DESTINATION_CHECK_TIME);
             while (elevatorMovementInfo.destinationExist()) {
                 try {
-                    int destinationFloor = elevatorMovementInfo.getClosestDestinationFloor();
+                    destinationFloor = elevatorMovementInfo.getClosestDestinationFloor();
                     Direction direction = null;
                     if (destinationFloor > elevatorMovementInfo.getCurrentFloor()) {
                         direction = Direction.GOING_UP;
@@ -26,7 +27,7 @@ public class ElevatorMover extends Thread {
                     switch (elevatorMovementInfo.getDirection()) {
                         case GOING_UP:
                         case GOING_DOWN:
-                            moveToDestinationFloor(destinationFloor);
+                            moveToDestinationFloor();
                             break;
                         case NONE:
                             throw new InvalidCaseException("The direction cannot be NONE while moving");
@@ -44,7 +45,7 @@ public class ElevatorMover extends Thread {
         }
     }
 
-    private void moveToDestinationFloor(int destinationFloor) {
+    private void moveToDestinationFloor() {
         if (elevatorMovementInfo.getDirection().equals(Direction.GOING_UP)) {
             while (elevatorMovementInfo.getCurrentFloor() < destinationFloor) {
                 waitingFor(MOVING_TIME);

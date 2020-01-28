@@ -19,6 +19,7 @@ public class Elevator {
     ElevatorMovementInfo elevatorMovementInfo;
     boolean isDoorOpened = false;
     final public int DOOR_OPEN_CLOSE_TIME = 2000;
+    final public int WEIGHT_EXCEEDED_WAIT_TIME = 1000;
 
     public Elevator(String id, int height, int width, int length, int possibleWeight, ElevatorMovementInfo elevatorMovementInfo) {
         this.id = id;
@@ -48,6 +49,7 @@ public class Elevator {
         waitingFor(DOOR_OPEN_CLOSE_TIME);
         while (isTooManyPeople()) {
             System.out.println("There are too many people in here.");
+            waitingFor(WEIGHT_EXCEEDED_WAIT_TIME);
         }
         closeDoor();
         return true;
